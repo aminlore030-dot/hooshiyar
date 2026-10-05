@@ -19,6 +19,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        # The generated client ships without type declarations; type-checking
+        # needs them, so regenerate before running tsc.
+        run: bunx prisma generate
+        env:
+          DATABASE_URL: file:db/custom.db
+
       - name: Run ESLint
         run: bun run lint
 
