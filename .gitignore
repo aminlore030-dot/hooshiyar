@@ -31,7 +31,10 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.*.local
+!.env.example
 
 # vercel
 .vercel
@@ -62,3 +65,8 @@ server.log
 !/workspace/.gitkeep
 /public/*.zip
 *.zip
+
+# ─── runtime / machine-local artifacts (never commit) ───
+.zscripts/*.pid
+/tool-results/*/
+!tool-results/.gitkeep
