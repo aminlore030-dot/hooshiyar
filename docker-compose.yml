@@ -1,0 +1,42 @@
+version: "3.9"
+
+# ─── هوش‌یار — docker-compose ───
+# اجرا: docker compose up -d
+# اپ:        http://localhost:3000
+# سرور MCP:  http://localhost:3010 (اختیاری)
+
+services:
+  app:
+    build: .
+    container_name: hooshiyar-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - HOOSHIYAR_WORKSPACE=/app/workspace
+    volumes:
+      - hooshiyar_workspace:/app/workspace
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # سرور MCP داخلی — کاربران خارجی (Claude Desktop و…) یا خود اپ می‌توانند وصل شوند
+  mcp:
+    build: .
+    container_name: hooshiyar-mcp
+    working_dir: /app/mini-services/mcp-server
+    command: ["bun", "run", "index.ts"]
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - hooshiyar_workspace:/app/workspace
+    restart: unless-stopped
+    profiles: ["mcp"]
+
+volumes:
+  hooshiyar_workspace:
