@@ -71,3 +71,21 @@ E2E verification (Agent Browser, all PASS):
 
 Stage Summary:
 - Product complete and browser-verified. Manual test checklist + limitations documented in README.
+
+---
+Task ID: fix-atria-key
+Agent: main (orchestrator)
+Task: دیباگ «کلید Atria وارد نمی‌شود و خطا می‌دهد» — تست endpoint واقعی، یافتن علت، رفع و تأیید E2E
+
+Work Log:
+- curl مستقیم: GET /v1/models و POST /v1/chat/completions با کلید atr_l2H_... هر دو 200؛ تنها مدل موجود: Atria-Dawn-Preview (مدل reasoning با خروجی reasoning_content).
+- تست APIهای خودِ اپ از سرور: /api/providers/test و /api/providers/models با مدل درست → هر دو موفق. پس مشکل سمت فرم بود.
+- بازتولید خطا در مرورگر (Agent Browser): ذخیرهٔ کلید با فیلد مدل خالی → toast «نام مدل را وارد کنید.» و کلید ذخیره نمی‌شد. علت‌ها: (۱) placeholder «gpt-4o-mini» فیلد را پر جلوه می‌داد، (۲) چیپ‌های پیشنهادی gpt-4o/gpt-4o-mini/o3-mini برای Atria اشتباه بودند و تست با آن‌ها خطای HTTP 400: A supported model is required می‌داد.
+- Fix 1 (settings-dialog KeyForm): در save() اگر مدل خالی بود، خودکار از /models ارائه‌دهنده کشف و اولین مدل انتخاب/ذخیره می‌شود؛ «دریافت فهرست مدل‌ها» اولین مدل را پیش‌انتخاب می‌کند؛ toggle «ورود دستی» و «بازگشت به فهرست»؛ placeholder فارسی شفاف + hint زیر فیلد؛ چیپ‌های پیشنهادی فقط برای endpoint پیش‌فرض واقعی همان ارائه‌دهنده نمایش داده می‌شوند.
+- Fix 2 (api/providers/test): برای endpointهای openai-سازگار اگر مدل ذخیره نشده باشد، ابتدا از /models مدل کشف می‌شود (رفع تست کلیدهای قدیمی بدون مدل)؛ پیام خطای فارسی واضح در شکست کشف.
+- bun lint: clean. بازبینی مرورگر: ذخیره با مدل خالی → خودکار Atria-Dawn-Preview انتخاب و ذخیره شد (toast «کلید ذخیره شد»)؛ تست کلید → تیک سبز «کلید معتبر است و مدل پاسخ داد»؛ چت زنده با کلید Atria → پاسخ فارسی روان استریم شد؛ کنسول بدون خطا.
+
+Stage Summary:
+- کلید و endpoint سالم بودند؛ مشکل UX اعتبارسنجی مدل در فرم کلید بود.
+- رفتار جدید: کاربر نیازی به دانستن نام مدل ندارد؛ کلید با مدل خالی هم ذخیره و هم تست می‌شود.
+- کلید Atria در گنجینه با مدل Atria-Dawn-Preview ذخیره و چت واقعی با آن E2E تأیید شد.

@@ -209,6 +209,8 @@ function KeyForm({
   const [model, setModel] = useState(initial?.model ?? '');
   const [models, setModels] = useState<string[]>([]);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [manualModel, setManualModel] = useState(false);
+  const isDemo = provider === 'hooshiyar-demo';
 
   const info = PROVIDERS[provider];
   const suggestions = SUGGESTED_MODELS[provider] ?? [];
@@ -230,12 +232,36 @@ function KeyForm({
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setModels(json.models ?? []);
+      setManualModel(false);
+      // Preselect the first model so «ذخیره کلید» works immediately.
+      if (json.models?.length && !model.trim()) setModel(json.models[0]);
       toast.success(`${json.models?.length ?? 0} مدل یافت شد`);
     } catch (e: any) {
       toast.error(`دریافت مدل‌ها ناموفق: ${e?.message ?? e}`);
     } finally {
       setLoadingModels(false);
     }
+  };
+
+  /** Auto-discover a model when the user left the field empty. */
+  const autoDiscoverModel = async (): Promise<string> => {
+    if (isDemo) return 'glm-4-flash';
+    try {
+      const res = await fetch('/api/providers/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, baseUrl: baseUrl || info.defaultBaseUrl, apiKey }),
+      });
+      const json = await res.json();
+      if (!json.error && Array.isArray(json.models) && json.models.length > 0) {
+        setModels(json.models);
+        setManualModel(false);
+        return json.models[0];
+      }
+    } catch {
+      /* fall through to manual validation */
+    }
+    return '';
   };
 
   const save = async () => {
@@ -247,8 +273,19 @@ function KeyForm({
       toast.error('کلید API را وارد کنید.');
       return;
     }
-    if (!model.trim()) {
-      toast.error('نام مدل را وارد کنید.');
+    let finalModel = model.trim();
+    if (!finalModel && !isDemo) {
+      // The user doesn't have to know the model name — ask the provider itself.
+      toast.info('نام مدل خالی است؛ در حال دریافت از ارائه‌دهنده…');
+      finalModel = await autoDiscoverModel();
+      if (finalModel) {
+        setModel(finalModel);
+        toast.success(`مدل «${finalModel}» به‌طور خودکار انتخاب شد.`);
+      }
+    }
+    if (isDemo && !finalModel) finalModel = 'glm-4-flash';
+    if (!finalModel) {
+      toast.error('نام مدل را وارد کنید، یا دکمهٔ «دریافت فهرست مدل‌ها» را بزنید تا یکی انتخاب شود.');
       return;
     }
     const entry: KeyEntry = {
@@ -257,7 +294,7 @@ function KeyForm({
       label: label.trim(),
       baseUrl: (baseUrl || info.defaultBaseUrl).trim(),
       apiKey: apiKey.trim(),
-      model: model.trim(),
+      model: finalModel,
       createdAt: initial?.createdAt ?? Date.now(),
       lastTestAt: initial?.lastTestAt,
       lastTestOk: initial?.lastTestOk,
@@ -328,19 +365,35 @@ function KeyForm({
             </Button>
           )}
         </div>
-        {models.length > 0 ? (
-          <Select value={model} onValueChange={setModel}>
-            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="انتخاب مدل" /></SelectTrigger>
-            <SelectContent className="max-h-60">
-              {models.map((m) => (
-                <SelectItem key={m} value={m} className="text-xs font-mono">{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {models.length > 0 && !manualModel ? (
+          <div className="flex gap-1.5">
+            <Select value={model} onValueChange={setModel}>
+              <SelectTrigger className="h-9 flex-1 text-sm"><SelectValue placeholder="انتخاب مدل" /></SelectTrigger>
+              <SelectContent className="max-h-60">
+                {models.map((m) => (
+                  <SelectItem key={m} value={m} className="text-xs font-mono">{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button variant="ghost" size="sm" className="h-9 shrink-0 text-[11px]" onClick={() => setManualModel(true)}>
+              ورود دستی
+            </Button>
+          </div>
         ) : (
           <>
-            <Input value={model} onChange={(e) => setModel(e.target.value)} dir="ltr" className="h-9 font-mono text-sm" placeholder="gpt-4o-mini" />
-            {suggestions.length > 0 && (
+            {models.length > 0 && (
+              <Button variant="ghost" size="sm" className="h-6 w-fit gap-1 px-2 text-[11px]" onClick={() => setManualModel(false)}>
+                بازگشت به فهرست مدل‌ها ({models.length})
+              </Button>
+            )}
+            <Input value={model} onChange={(e) => setModel(e.target.value)} dir="ltr" className="h-9 font-mono text-sm" placeholder="نام مدل — مثلاً gpt-4o-mini" />
+            {!isDemo && (
+              <p className="text-[10px] leading-5 text-muted-foreground">
+                نمی‌دانید چه مدلی؟ «دریافت فهرست مدل‌ها» فهرست را مستقیم از سرویس می‌گیرد و مدل مناسب را انتخاب می‌کند.
+              </p>
+            )}
+            {/* Suggested models are only meaningful for the provider's real endpoint. */}
+            {suggestions.length > 0 && (baseUrl || '').trim().replace(/\/+$/, '') === info.defaultBaseUrl.replace(/\/+$/, '') && (
               <div className="flex flex-wrap gap-1.5">
                 {suggestions.map((m) => (
                   <button
