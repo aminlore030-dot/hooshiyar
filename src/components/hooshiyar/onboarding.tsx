@@ -2,7 +2,11 @@
 
 /**
  * OnboardingDialog — first-run wizard: quick demo start OR add your own key.
+ * The demo engine only exists on the original host; elsewhere (Vercel, Docker,
+ * self-host) /api/demo-status reports unavailable and the demo card is disabled
+ * with a clear Persian note, so a fresh deployment never fails mid-chat.
  */
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Sparkles, KeyRound, ShieldCheck } from 'lucide-react';
@@ -17,6 +21,19 @@ export function OnboardingDialog() {
   const dialog = useAppStore((s) => s.dialog);
   const openDialog = useAppStore((s) => s.openDialog);
   const keys = useAppStore((s) => s.keys);
+  const [demoAvailable, setDemoAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (vaultState !== 'empty' || dialog !== null) return;
+    let alive = true;
+    fetch('/api/demo-status')
+      .then((r) => r.json())
+      .then((j) => alive && setDemoAvailable(Boolean(j?.available)))
+      .catch(() => alive && setDemoAvailable(false));
+    return () => {
+      alive = false;
+    };
+  }, [vaultState, dialog]);
 
   const visible = vaultState === 'empty' && dialog === null;
   if (!visible) return null;
@@ -74,13 +91,16 @@ export function OnboardingDialog() {
 
           <button
             onClick={startDemo}
-            className="flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 text-start transition-colors hover:border-primary/50 hover:bg-accent/30"
+            disabled={demoAvailable === false}
+            className={`flex items-start gap-3 rounded-xl border border-border/70 bg-card p-4 text-start transition-colors hover:border-primary/50 hover:bg-accent/30 ${demoAvailable === false ? 'cursor-not-allowed opacity-50' : ''}`}
           >
             <Sparkles className="mt-0.5 size-5 text-amber-500" aria-hidden />
             <span>
               <span className="block text-sm font-bold">شروع سریع با ارائه‌دهنده دمو</span>
               <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                بدون کلید — از موتور دموی میزبان استفاده کنید و همه امکانات (ابزارها، عامل، تیم) را ببینید
+                {demoAvailable === false
+                  ? '⚠️ موتور دمو روی این سرور فعال نیست — با دکمهٔ بالا و کلید خودتان شروع کنید (BYOK)'
+                  : 'بدون کلید — از موتور دموی میزبان استفاده کنید و همه امکانات (ابزارها، عامل، تیم) را ببینید'}
               </span>
             </span>
           </button>

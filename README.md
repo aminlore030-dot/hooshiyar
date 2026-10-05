@@ -1,8 +1,21 @@
 # 🪶 هوش‌یار — ایستگاه کاری هوش مصنوعی شخصی
 
+<p align="center">
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-emerald" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black" />
+  <img alt="UI" src="https://img.shields.io/badge/UI-فارسی%20%2F%20RTL-emerald" />
+  <img alt="Storage" src="https://img.shields.io/badge/Data-مرورگر%20شما-blue" />
+</p>
+
 وب‌اپلیکیشن شخصی هوش مصنوعی با معماری **BYOK** (Bring Your Own Key): کلیدهای API خودتان را وارد می‌کنید و بلافاصله گفتگو، عامل هوشمند (Agent)، اجرای کد، جستجوی وب، بازیابی اسناد و ارکستراسیون چندعاملی در اختیار دارید. رابط کاربری کاملاً **فارسی و راست‌به‌چپ (RTL)** با فونت وزیرمتن.
 
 > کلیدها فقط در مرورگر شما ذخیره می‌شوند (رمزگذاری AES-GCM). سرور هیچ کلیدی ذخیره نمی‌کند.
+
+| گفتگو | پنل عامل | مدیریت کلیدها |
+|---|---|---|
+| ![گفتگو](docs/screenshots/chat.png) | ![پنل عامل](docs/screenshots/agent-panel.png) | ![کلیدها](docs/screenshots/keys.png) |
+
+**شروع در ۳۰ ثانیه:** برنامه را باز کنید ← «استفاده از کلیدهای خودم» ← ارائه‌دهنده را انتخاب و کلید را بچسبانید ← «دریافت فهرست مدل‌ها» مدل مناسب را خودش انتخاب می‌کند ← چت کنید. 🚀
 
 ---
 
@@ -73,11 +86,34 @@ bun install
 bun run dev        # http://localhost:3000
 ```
 
+با npm هم می‌توانید:
+
+```bash
+npm install && npm run dev
+```
+
 سرویس MCP اختیاری:
 
 ```bash
 cd mini-services/mcp-server && bun run dev   # پورت 3010
 ```
+
+> 💡 **ارائه‌دهنده دمو (بدون کلید):** فقط روی میزبانیِ اصلی فعال است. روی هر میزبان دیگر، برنامه خودش با `/api/demo-status` تشخیص می‌دهد و دمو را با توضیح غیرفعال نشان می‌دهد — در آن صورت کافی است کلید خودتان را وارد کنید (BYOK).
+
+## ☁️ استقرار روی GitHub
+
+راهنمای گام‌به‌گام فارسی (ساخت مخزن، push، اتصال Vercel/Docker، به‌روزرسانی):
+**[docs/GITHUB.md](docs/GITHUB.md)**
+
+خلاصه:
+
+```bash
+git init && git add . && git commit -m "hooshiyar v1.0.0"
+git remote add origin https://github.com/<USERNAME>/hooshiyar.git
+git push -u origin main
+```
+
+سپس در Vercel/Netlify مخزن را Import کنید — متغیر محیطی خاصی لازم نیست (اپ BYOK است). کلید «Deploy to Vercel» هم در راهنما هست.
 
 ## 📦 استقرار
 
@@ -106,9 +142,12 @@ docker compose --profile mcp up -d
 
 ## 🧪 تست و صحت‌سنجی
 
-این نسخه بدون فایل‌های تست خودکار تحویل داده شد (محدودیت محیط ساخت). صحت‌سنجی به‌صورت اجرایی انجام شد:
+صحت‌سنجی اجرایی انجام شده (Agent Browser + curl):
 
 - ✅ استریم پاسخ (`/api/chat` + ارائه‌دهنده دمو) — برون‌سپاری SSE تأیید شد
+- ✅ چت واقعی با endpoint سازگار با OpenAI (Atria) — استریم و پاسخ فارسی
+- ✅ افزودن کلید **بدون دانستن نام مدل** — کشف خودکار مدل از `/models`
+- ✅ پیام خطای اختصاصی برای محدودیت جغرافیایی ارائه‌دهنده (مثل ۴۰۳ OpenAI)
 - ✅ جستجوی وب فارسی (`/api/tools/search`)
 - ✅ سندباکس پایتون (خروجی فارسی، فاکتوریل)
 - ✅ سندباکس JS (return سطح بالا + timeout)
@@ -140,9 +179,10 @@ docker compose --profile mcp up -d
 1. **سندباکس‌ها ایزوله کامل نیستند** — `node:vm` و `python3` فرزند، هم‌کاربر اجرا می‌شوند؛ در محیط‌های چندکاربره از Docker/VM جدا استفاده کنید.
 2. **سندباکس شل/فایل/پایتون در Vercel/Netlify کار نمی‌کند** (serverless بدون فایل‌سیستم ماندگار).
 3. **RAG فعلی BM25 کلیدواژه‌ای است** — برای پرسش‌های معنایی پیچیده، embedding بهتر است (نقشه راه).
-4. **ارائه‌دهنده دمو استریم واقعی ندارد** (pseudo-stream) و ممکن است در میزبانی‌های دیگر غیرفعال باشد.
-5. **ورودی صوتی** به Web Speech API مرورگر وابسته است (کروم: بله؛ فایرفاکس: خیر).
-6. **پیش‌فرض vault بدون رمز** برای شروع راحت است؛ حتماً در تب امنیت رمز تعیین کنید.
+4. **ارائه‌دهنده دمو فقط روی میزبانی اصلی کار می‌کند** (pseudo-stream)؛ روی میزبان‌های دیگر به‌طور خودکار تشخیص و با پیام شفاف غیرفعال می‌شود — اپ BYOK است و با کلید شما کامل کار می‌کند.
+5. برخی سرویس‌ها (مثل OpenAI) درخواست‌های بعضی مناطق را رد می‌کنند (خطای ۴۰۳ جغرافیایی)؛ در این حالت پیام خطا راهنمایی می‌کند که ارائه‌دهندهٔ دیگری انتخاب کنید یا از endpoint واسطه استفاده کنید.
+6. **ورودی صوتی** به Web Speech API مرورگر وابسته است (کروم: بله؛ فایرفاکس: خیر).
+7. **پیش‌فرض vault بدون رمز** برای شروع راحت است؛ حتماً در تب امنیت رمز تعیین کنید.
 
 ## 🗂 ساختار مخزن
 
@@ -182,4 +222,10 @@ Dockerfile · docker-compose.yml · docs/DEPLOYMENT.md · .env.example
 
 ## 📄 مجوز
 
-متن باز — آزاد به استفاده، تغییر و توزیع. فونت وزیرمتن (OFL).
+MIT — آزاد به استفاده، تغییر و توزیع. فونت وزیرمتن (OFL).
+
+---
+
+### English (summary)
+
+**Hooshiyar** (Persian: « Wise Helper ») is a self-hostable, personal AI workspace with a **100% Persian RTL UI**. Bring your own API key (OpenAI, Anthropic, Gemini, OpenRouter, Groq, DeepSeek, Mistral, Together, Fireworks, Ollama, LM Studio, or any OpenAI-compatible endpoint) and instantly get: streaming chat with branching, an agentic tool loop (web search, code execution, shell, files) with human-in-the-loop approvals, MCP client/server, browser-side BM25 RAG for PDFs, long-term memory, and a planner/executor/critic multi-agent mode. Keys are AES-GCM encrypted in your browser only — the stateless server never stores them. Run locally with `bun install && bun run dev`, or deploy to Vercel/Netlify/Docker (system-level sandboxes need self-hosting; see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).

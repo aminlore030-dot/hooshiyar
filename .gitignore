@@ -52,3 +52,13 @@ prompt
 server.log
 # Skills directory
 /skills/
+
+# ─── هوش‌یار runtime data (per-machine, never commit) ───
+/db/custom.db
+/tool-results/
+/download/*
+!/download/README.md
+/workspace/*
+!/workspace/.gitkeep
+/public/*.zip
+*.zip

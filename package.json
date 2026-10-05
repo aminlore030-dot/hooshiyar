@@ -1,7 +1,22 @@
 {
-  "name": "nextjs_tailwind_shadcn_ts",
-  "version": "0.2.1",
-  "private": true,
+  "name": "hooshiyar-ai-workspace",
+  "version": "1.0.0",
+  "private": false,
+  "description": "هوش‌یار — ایستگاه کاری هوش مصنوعی شخصی (BYOK) | Personal Persian-first AI assistant workspace: bring your own key, agentic tools, MCP, RAG, multi-agent — 100% RTL UI",
+  "license": "MIT",
+  "keywords": [
+    "ai-assistant",
+    "byok",
+    "agent",
+    "mcp",
+    "rag",
+    "persian",
+    "rtl",
+    "nextjs",
+    "openai",
+    "anthropic",
+    "gemini"
+  ],
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
