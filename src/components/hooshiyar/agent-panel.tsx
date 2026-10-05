@@ -4,7 +4,7 @@
  * AgentPanel — right panel: ابزارها (toggles), فایل‌های پوشه کاری, حافظه بلندمدت,
  * اسناد RAG, حسابرسی. Hidden on small screens unless toggled.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Wrench, FolderTree, Brain, FileText, ScrollText, Trash2, Plus, RefreshCw, X,
@@ -29,6 +29,15 @@ export function AgentPanel() {
   const panelOpen = useAppStore((s) => s.panelOpen);
   const togglePanel = useAppStore((s) => s.togglePanel);
 
+  // The panel is pure client interactivity (Dexie live queries, tool toggles).
+  // Rendering its Radix Tabs during SSR causes attribute-mismatch warnings,
+  // so the content mounts client-side only (the aside shell still SSRs).
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+
   return (
     <aside
       className={cn(
@@ -44,30 +53,32 @@ export function AgentPanel() {
         </Button>
       </div>
 
-      <Tabs defaultValue="tools" dir="rtl" className="flex min-h-0 flex-1 flex-col gap-0">
-        <TabsList className="grid w-full grid-cols-5 rounded-none border-b border-border/60 bg-transparent p-0">
-          {[
-            ['tools', 'ابزار', Wrench],
-            ['files', 'فایل', FolderTree],
-            ['memory', 'حافظه', Brain],
-            ['docs', 'اسناد', FileText],
-            ['audit', 'گزارش', ScrollText],
-          ].map(([value, label, Icon]: any) => (
-            <TabsTrigger key={value} value={value} className="relative h-9 gap-1 rounded-none text-[11px] data-[state=active]:bg-card" aria-label={label}>
-              <Icon className="size-3.5" />
-              <span className="hidden xl:inline">{label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {mounted && (
+        <Tabs defaultValue="tools" dir="rtl" className="flex min-h-0 flex-1 flex-col gap-0">
+          <TabsList className="grid w-full grid-cols-5 rounded-none border-b border-border/60 bg-transparent p-0">
+            {[
+              ['tools', 'ابزار', Wrench],
+              ['files', 'فایل', FolderTree],
+              ['memory', 'حافظه', Brain],
+              ['docs', 'اسناد', FileText],
+              ['audit', 'گزارش', ScrollText],
+            ].map(([value, label, Icon]: any) => (
+              <TabsTrigger key={value} value={value} className="relative h-9 gap-1 rounded-none text-[11px] data-[state=active]:bg-card" aria-label={label}>
+                <Icon className="size-3.5" />
+                <span className="hidden xl:inline">{label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <TabsContent value="tools" className="m-0 p-4"><ToolsTab /></TabsContent>
-          <TabsContent value="files" className="m-0 p-4"><FilesTab /></TabsContent>
-          <TabsContent value="memory" className="m-0 p-4"><MemoryTab /></TabsContent>
-          <TabsContent value="docs" className="m-0 p-4"><DocsTab /></TabsContent>
-          <TabsContent value="audit" className="m-0 p-4"><AuditTab /></TabsContent>
-        </ScrollArea>
-      </Tabs>
+          <ScrollArea className="min-h-0 flex-1">
+            <TabsContent value="tools" className="m-0 p-4"><ToolsTab /></TabsContent>
+            <TabsContent value="files" className="m-0 p-4"><FilesTab /></TabsContent>
+            <TabsContent value="memory" className="m-0 p-4"><MemoryTab /></TabsContent>
+            <TabsContent value="docs" className="m-0 p-4"><DocsTab /></TabsContent>
+            <TabsContent value="audit" className="m-0 p-4"><AuditTab /></TabsContent>
+          </ScrollArea>
+        </Tabs>
+      )}
     </aside>
   );
 }
