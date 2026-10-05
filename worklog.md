@@ -105,3 +105,23 @@ Work Log:
 Stage Summary:
 - خطای ۴۰۳ ربطی به کلید Atria نداشت؛ از api.openai.com (کارت کلید آزمایشی ساختگی) بود و ریشهٔ آن محدودیت منطقه‌ای OpenAI نسبت به سرور میزبان است.
 - حالا خطاهای ارائه‌دهنده میزبان مقصد را نشان می‌دهند و خطای جغرافیایی پیام اختصاصی و راهنما دارد.
+
+---
+Task ID: github-packaging
+Agent: main (orchestrator)
+Task: آماده‌سازی پروژه برای دانلود و استقرار روی GitHub با معرفی حرفه‌ای و رفتار موجه در هر میزبان
+
+Work Log:
+- /api/demo-status جدید: probe واقعی موتور دمو (import + ZAI.create با timeout 4s، کش 5 دقیقه) تا روی هر هاستی وضعیت دمو مشخص باشد؛ تأیید شد در sandbox → {available:true}.
+- onboarding.tsx: کارت دمو وقتی موتور دمو موجود نیست disabled با پیام فارسی «⚠️ موتور دمو روی این سرور فعال نیست…».
+- package.json: نام hooshiyar-ai-workspace، نسخه 1.0.0، description دو‌زبانه، license MIT، keywords.
+- LICENSE (MIT + OFL وزیرمتن)، .github/workflows/ci.yml (bun install → eslint → tsc --noEmit).
+- .gitignore: خروجی‌های runtime (db/custom.db، tool-results، workspace/* با gitkeep، *.zip، download/*).
+- docs/GITHUB.md: راهنمای کامل فارسی (ساخت مخزن، push، Deploy to Vercel button، Docker، سرور شخصی، انتشار نسخه، CI، سؤالات پرتکرار شامل خطای ۴۰۳ جغرافیایی).
+- README: badgeها، جدول اسکرین‌شات (docs/screenshots/{chat,agent-panel,keys}.png — گرفته‌شده با Agent Browser)، بخش «استقرار روی GitHub»، خلاصه انگلیسی، به‌روزرسانی صحت‌سنجی و محدودیت‌ها (تشخیص خودکار دمو، خطای جغرافیایی).
+- رفع hydration mismatch پنل عامل (Radix Tabs در SSR) با useSyncExternalStore mounted-gate؛ tsconfig exclude برای examples/skills/.zscripts تا CI سبز شود (tsc و eslint هر دو صفر خطا).
+- بسته دانلود: public/hooshiyar-source.zip (751KB، 175 فایل — بدون node_modules/.next/.git/.env/db)؛ تأیید دانلود HTTP 200 از مسیر /hooshiyar-source.zip.
+- دو کامیت: release v1.0.0 packaging + fix hydration. تأیید مرورگر: پنل عامل، چت دمو و کنسول بدون خطا.
+
+Stage Summary:
+- پروژه هم برای دانلود بسته‌بندی شد و هم برای انتشار GitHub/استقرار زنده آماده است؛ در هر میزبانی رفتار اپ «موجه» است: BYOK همه‌جا کار می‌کند، دمو فقط روی میزبان اصلی و با تشخیص خودکار، پیام‌های خطای ارائه‌دهنده راهنما و دارای میزبان مقصد.
