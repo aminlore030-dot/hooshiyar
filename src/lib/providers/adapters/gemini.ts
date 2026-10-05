@@ -3,7 +3,7 @@
  * Uses the REST v1beta API with ?alt=sse streaming.
  */
 import type { CoreMessage, Part, ProxyChatRequest, StreamEvent, ToolSpec } from '@/lib/types';
-import { readSSE, extractApiError } from '@/lib/providers/sse';
+import { readSSE, extractApiError, hostOf } from '@/lib/providers/sse';
 
 interface GeminiPart {
   text?: string;
@@ -122,7 +122,7 @@ export async function* streamGemini(req: ProxyChatRequest): AsyncGenerator<Strea
 
   if (!res.ok || !res.body) {
     const payload = await res.json().catch(() => null);
-    yield { type: 'error', message: extractApiError(payload, res.status) };
+    yield { type: 'error', message: extractApiError(payload, res.status, hostOf(req.baseUrl)) };
     return;
   }
 
@@ -134,7 +134,7 @@ export async function* streamGemini(req: ProxyChatRequest): AsyncGenerator<Strea
       continue;
     }
     if (json.error) {
-      yield { type: 'error', message: extractApiError(json, json.error.code ?? 500) };
+      yield { type: 'error', message: extractApiError(json, json.error.code ?? 500, hostOf(req.baseUrl)) };
       return;
     }
     const cand = json.candidates?.[0];
@@ -153,7 +153,7 @@ export async function* streamGemini(req: ProxyChatRequest): AsyncGenerator<Strea
 
 export async function listGeminiModels(baseUrl: string, apiKey: string, signal?: AbortSignal): Promise<string[]> {
   const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/models?key=${encodeURIComponent(apiKey)}`, { signal });
-  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status));
+  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)));
   const json = await res.json();
   return ((json.models ?? []) as any[])
     .map((m) => String(m.name ?? '').replace(/^models\//, ''))
@@ -176,7 +176,7 @@ export async function testGeminiKey(
       signal,
     });
     if (res.ok) return { ok: true, message: 'کلید معتبر است و مدل پاسخ داد ✅' };
-    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status) };
+    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)) };
   } catch (e: any) {
     return { ok: false, message: `اتصال برقرار نشد: ${e?.message ?? e}` };
   }

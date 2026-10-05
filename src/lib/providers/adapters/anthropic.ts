@@ -3,7 +3,7 @@
  * Docs: https://docs.anthropic.com/en/api/messages
  */
 import type { CoreMessage, Part, ProxyChatRequest, StreamEvent, ToolSpec } from '@/lib/types';
-import { readSSE, extractApiError } from '@/lib/providers/sse';
+import { readSSE, extractApiError, hostOf } from '@/lib/providers/sse';
 import { joinUrl } from '@/lib/providers/adapters/openai-compat';
 
 interface AnthropicBlock {
@@ -107,7 +107,7 @@ export async function* streamAnthropic(req: ProxyChatRequest): AsyncGenerator<St
 
   if (!res.ok || !res.body) {
     const payload = await res.json().catch(() => null);
-    yield { type: 'error', message: extractApiError(payload, res.status) };
+    yield { type: 'error', message: extractApiError(payload, res.status, hostOf(req.baseUrl)) };
     return;
   }
 
@@ -138,7 +138,7 @@ export async function* streamAnthropic(req: ProxyChatRequest): AsyncGenerator<St
         break;
       }
       case 'error': {
-        yield { type: 'error', message: extractApiError(json, json?.error?.status ?? 500) };
+        yield { type: 'error', message: extractApiError(json, json?.error?.status ?? 500, hostOf(req.baseUrl)) };
         return;
       }
       case 'message_stop':
@@ -152,7 +152,7 @@ export async function listAnthropicModels(baseUrl: string, apiKey: string, signa
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     signal,
   });
-  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status));
+  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)));
   const json = await res.json();
   return ((json.data ?? []) as any[]).map((m) => m.id).filter(Boolean).sort();
 }
@@ -171,7 +171,7 @@ export async function testAnthropicKey(
       signal,
     });
     if (res.ok) return { ok: true, message: 'کلید معتبر است و مدل پاسخ داد ✅' };
-    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status) };
+    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)) };
   } catch (e: any) {
     return { ok: false, message: `اتصال برقرار نشد: ${e?.message ?? e}` };
   }

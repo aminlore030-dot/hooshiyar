@@ -50,15 +50,39 @@ function parseEvent(raw: string): { event?: string; data: string } | null {
   return { event, data: dataLines.join('\n') };
 }
 
+/** Best-effort host extraction for friendlier error context. */
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url.slice(0, 60);
+  }
+}
+
 /** Extract a readable Persian-friendly error message from a provider error payload. */
-export function extractApiError(payload: unknown, status: number): string {
+export function extractApiError(payload: unknown, status: number, host?: string): string {
   const p = payload as Record<string, any> | undefined;
-  const msg =
+  const code = p?.error?.code ?? p?.code;
+  const rawMsg =
     p?.error?.message ??
     p?.error ??
     p?.message ??
     p?.[0]?.error?.message ??
     (typeof payload === 'string' ? payload.slice(0, 300) : null);
+  const msg =
+    typeof rawMsg === 'string' ? rawMsg : rawMsg ? JSON.stringify(rawMsg).slice(0, 300) : null;
+
+  // Geo-restriction (OpenAI-style unsupported_country_region_territory) —
+  // the request never reaches key validation, so the key itself may be fine.
+  if (code === 'unsupported_country_region_territory' || /country, region, or territory not supported/i.test(msg ?? '')) {
+    return (
+      `🚫 محدودیت جغرافیایی${host ? ` «${host}»` : ''}: این سرویس درخواست‌های سرور را به‌دلیل منطقهٔ جغرافیایی نمی‌پذیرد ` +
+      `(Country, region, or territory not supported) — این خطا ربطی به اعتبار کلید شما ندارد. ` +
+      `لطفاً ارائه‌دهندهٔ دیگری (مثلاً Atria یا دموی داخلی) را در انتخابگر مدل انتخاب کنید، ` +
+      `یا برای این سرویس یک Base URL واسطهٔ موجود در منطقهٔ مجاز تنظیم کنید.`
+    );
+  }
+
   const fa: Record<number, string> = {
     401: 'کلید API نامعتبر است (خطای ۴۰۱)',
     403: 'دسترسی با این کلید مجاز نیست (خطای ۴۰۳)',
@@ -69,5 +93,6 @@ export function extractApiError(payload: unknown, status: number): string {
     503: 'سرویس ارائه‌دهنده در دسترس نیست (۵۰۳)',
   };
   const base = fa[status] ?? `خطای HTTP ${status}`;
-  return msg ? `${base}: ${String(msg).slice(0, 300)}` : base;
+  const hostPrefix = host ? `(${host}) ` : '';
+  return msg ? `${hostPrefix}${base}: ${String(msg).slice(0, 300)}` : `${hostPrefix}${base}`;
 }

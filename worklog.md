@@ -89,3 +89,19 @@ Stage Summary:
 - کلید و endpoint سالم بودند؛ مشکل UX اعتبارسنجی مدل در فرم کلید بود.
 - رفتار جدید: کاربر نیازی به دانستن نام مدل ندارد؛ کلید با مدل خالی هم ذخیره و هم تست می‌شود.
 - کلید Atria در گنجینه با مدل Atria-Dawn-Preview ذخیره و چت واقعی با آن E2E تأیید شد.
+
+---
+Task ID: fix-geo-403
+Agent: main (orchestrator)
+Task: دیباگ «دسترسی با این کلید مجاز نیست (خطای ۴۰۳): Country, region, or territory not supported»
+
+Work Log:
+- curl مستقیم: Atria از سرور sandbox سالم است (200، هر دو models و chat/completions). منبع خطای ۴۰۳: api.openai.com با کارت «کلید آزمایشی» (کلید ساختگی sk-fak...3456) — OpenAI درخواست را قبل از بررسی کلید به دلیل منطقهٔ سرور رد می‌کند: unsupported_country_region_territory.
+- بازتولید در مرورگر: انتخاب گزینهٔ «OpenAI · gpt-4o-mini · کلید آزمایشی» در انتخابگر مدل و ارسال پیام → عین پیام خطای کاربر. (تست با curl روی /api/providers/test هم همین را داد.)
+- Fix (sse.ts): تشخیص اختصاصی خطای جغرافیایی (code=unsupported_country_region_territory یا متن Country, region, or territory not supported) → پیام فارسی راهنما با ذکر میزبان و تأکید بر بی‌ربط بودن به اعتبار کلید + پیشنهاد تغییر ارائه‌دهنده/Base URL واسطه؛ افزودن hostOf() و پارامتر اختیاری host به extractApiError؛ prefix میزبان (host) در سایر خطاها.
+- به‌روزرسانی هر ۳ آداپتور (openai-compat، anthropic، gemini) برای پاس دادن host در همهٔ مسیرهای خطا (chat stream HTTP، in-stream error، listModels، testKey).
+- bun lint clean. تأیید مرورگر: خطای جدید با «api.openai.com» و راهنمای فارسی نمایش داده شد؛ سپس سوییچ به Atria و چت مجدد → پاسخ فارسی سالم. بدون خطای کنسول.
+
+Stage Summary:
+- خطای ۴۰۳ ربطی به کلید Atria نداشت؛ از api.openai.com (کارت کلید آزمایشی ساختگی) بود و ریشهٔ آن محدودیت منطقه‌ای OpenAI نسبت به سرور میزبان است.
+- حالا خطاهای ارائه‌دهنده میزبان مقصد را نشان می‌دهند و خطای جغرافیایی پیام اختصاصی و راهنما دارد.

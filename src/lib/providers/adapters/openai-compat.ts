@@ -10,7 +10,7 @@ import type {
   StreamEvent,
   ToolSpec,
 } from '@/lib/types';
-import { readSSE, extractApiError } from '@/lib/providers/sse';
+import { readSSE, extractApiError, hostOf } from '@/lib/providers/sse';
 
 /* --------------------------- request conversion --------------------------- */
 
@@ -107,7 +107,7 @@ export async function* streamOpenAiCompatible(req: ProxyChatRequest): AsyncGener
     } catch {
       payload = await res.text().catch(() => null);
     }
-    yield { type: 'error', message: extractApiError(payload, res.status) };
+    yield { type: 'error', message: extractApiError(payload, res.status, hostOf(req.baseUrl)) };
     return;
   }
 
@@ -123,7 +123,7 @@ export async function* streamOpenAiCompatible(req: ProxyChatRequest): AsyncGener
       continue;
     }
     if (json.error) {
-      yield { type: 'error', message: extractApiError(json, 500) };
+      yield { type: 'error', message: extractApiError(json, 500, hostOf(req.baseUrl)) };
       return;
     }
     const choice = json.choices?.[0];
@@ -172,7 +172,7 @@ export async function listOpenAiModels(baseUrl: string, apiKey: string, signal?:
     headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
     signal,
   });
-  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status));
+  if (!res.ok) throw new Error(extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)));
   const json = await res.json();
   const models = (json.data ?? json.models ?? []) as any[];
   return models.map((m) => m.id ?? m.name).filter(Boolean).sort();
@@ -197,7 +197,7 @@ export async function testOpenAiKey(
       signal,
     });
     if (res.ok) return { ok: true, message: 'کلید معتبر است و مدل پاسخ داد ✅' };
-    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status) };
+    return { ok: false, message: extractApiError(await res.json().catch(() => null), res.status, hostOf(baseUrl)) };
   } catch (e: any) {
     return { ok: false, message: `اتصال برقرار نشد: ${e?.message ?? e}` };
   }
