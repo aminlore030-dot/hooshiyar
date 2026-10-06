@@ -162,5 +162,5 @@ export const SUGGESTED_MODELS: Partial<Record<ProviderId, string[]>> = {
   fireworks: ['accounts/fireworks/models/llama-v3p3-70b-instruct'],
   ollama: ['llama3.2', 'qwen2.5'],
   lmstudio: ['local-model'],
-  'hooshiyar-demo': ['glm-4-flash'],
+  'hooshiyar-demo': ['glm-4-flash', 'gpt-4o-mini', 'meta-llama/Llama-3.3-70B-Instruct-Turbo'],
 };
