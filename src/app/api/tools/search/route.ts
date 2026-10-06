@@ -16,6 +16,10 @@ const bodySchema = z.object({
   recencyDays: z.number().int().min(1).max(365).optional(),
 });
 
+const DDG_UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0';
+const BING_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0';
+
 export interface SearchResult {
   title: string;
   url: string;
@@ -54,23 +58,45 @@ export async function POST(req: NextRequest) {
     /* fall through to DDG */
   }
 
-  // Fallback: DuckDuckGo HTML (best effort).
+  // Fallback chain for hosts where the SDK has no credentials (i.e. any
+  // deployment other than the original one) — see /api/demo-status.
+  // 1) DuckDuckGo HTML (blocked from some cloud egress IPs, so keep trying).
   try {
     const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0',
+        'User-Agent': DDG_UA,
         'Accept-Language': 'fa,en;q=0.8',
+        Accept: 'text/html,application/xhtml+xml',
       },
       signal: AbortSignal.timeout(15_000),
     });
-    if (!res.ok) throw new Error(`DDG ${res.status}`);
-    const html = await res.text();
-    const results = parseDdg(html).slice(0, num);
-    if (!results.length) return Response.json({ error: 'هیچ نتیجه‌ای یافت نشد.' }, { status: 404 });
-    return Response.json({ engine: 'duckduckgo', results });
-  } catch (e: any) {
-    return Response.json({ error: `جستجو ناموفق بود: ${String(e?.message ?? e).slice(0, 200)}` }, { status: 502 });
+    if (res.ok) {
+      const results = parseDdg(await res.text()).slice(0, num);
+      if (results.length) return Response.json({ engine: 'duckduckgo', results });
+    }
+  } catch {
+    /* try the next engine */
   }
+
+  // 2) Bing — different egress reputation, parses with a stable CSS class.
+  try {
+    const res = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(query)}&count=${num * 2}&setlang=fa`, {
+      headers: {
+        'User-Agent': BING_UA,
+        'Accept-Language': 'fa,en;q=0.8',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.ok) {
+      const results = parseBing(await res.text()).slice(0, num);
+      if (results.length) return Response.json({ engine: 'bing', results });
+    }
+  } catch {
+    /* engines exhausted */
+  }
+
+  return Response.json({ error: 'جستجو ناموفق بود: هیچ موتور جستجویی پاسخ نداد.' }, { status: 502 });
 }
 
 function parseDdg(html: string): SearchResult[] {
@@ -118,4 +144,48 @@ function safeHost(u: string): string {
   } catch {
     return '';
   }
+}
+
+/* --------------------------------- Bing ---------------------------------- */
+
+/**
+ * Bing result links are wrapped in a tracking redirect
+ * (`bing.com/ck/a?…&u=a1<base64-of-real-url>&ntb=1`). We unwrap `u` so the
+ * caller sees the real destination; if decoding fails we keep the raw href.
+ */
+function unwrapBingUrl(href: string): string {
+  const m = /[?&]u=([^&]+)/.exec(href);
+  if (!m) return href;
+  try {
+    const b64 = decodeURIComponent(m[1]).replace(/^[a-z]\d/, '');
+    const url = Buffer.from(b64, 'base64').toString('utf-8');
+    return /^https?:\/\//i.test(url) ? url : href;
+  } catch {
+    return href;
+  }
+}
+
+/** Bing: `<li class="b_algo">…<h2 class=""><a href="…">title</a></h2>…<p>snippet</p>…` */
+function parseBing(html: string): SearchResult[] {
+  const out: SearchResult[] = [];
+  const itemRe = /<h2[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>\s*<\/h2>/g;
+  let m: RegExpExecArray | null;
+  while ((m = itemRe.exec(html)) && out.length < 10) {
+    const url = unwrapBingUrl(m[1]);
+    if (!/^https?:\/\//i.test(url)) continue; // skip Bing's internal links
+    out.push({
+      title: stripTags(m[2]).slice(0, 200),
+      url,
+      snippet: snippetNear(html, m.index).slice(0, 600),
+      host: safeHost(url),
+    });
+  }
+  return out;
+}
+
+/** Grab the text block that follows a result link (Bing puts the snippet in a <p>). */
+function snippetNear(html: string, index: number): string {
+  const tail = html.slice(index, index + 4000);
+  const p = /<p[^>]*>([\s\S]*?)<\/p>/.exec(tail);
+  return p ? stripTags(p[1]) : '';
 }
