@@ -1,11 +1,20 @@
 # 🪶 هوش‌یار — ایستگاه کاری هوش مصنوعی شخصی
 
 <p align="center">
+  <a href="https://workspace-b3baca8b-34c9-4dc4-95f4-b.vercel.app">
+    <img alt="Open the app" src="https://img.shields.io/badge/🚀_اپ_زنده_—_باز_کنید-22c55e?style=for-the-badge&labelColor=16a34a" />
+  </a>
+</p>
+
+<p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-emerald" />
   <img alt="Next.js" src="https://img.shields.io/badge/Next.js-16-black" />
   <img alt="UI" src="https://img.shields.io/badge/UI-فارسی%20%2F%20RTL-emerald" />
   <img alt="Storage" src="https://img.shields.io/badge/Data-مرورگر%20شما-blue" />
 </p>
+
+> **🚀 همین حالا استفاده کنید (بدون نصب):** [**workspace-b3baca8b-34c9-4dc4-95f4-b.vercel.app**](https://workspace-b3baca8b-34c9-4dc4-95f4-b.vercel.app)
+> برنامه از پیش مستقر شده — فقط باز کنید، کلید API خودتان را وارد کنید و شروع کنید. نیازی به build یا اجرای لوکال نیست.
 
 وب‌اپلیکیشن شخصی هوش مصنوعی با معماری **BYOK** (Bring Your Own Key): کلیدهای API خودتان را وارد می‌کنید و بلافاصله گفتگو، عامل هوشمند (Agent)، اجرای کد، جستجوی وب، بازیابی اسناد و ارکستراسیون چندعاملی در اختیار دارید. رابط کاربری کاملاً **فارسی و راست‌به‌چپ (RTL)** با فونت وزیرمتن.
 
