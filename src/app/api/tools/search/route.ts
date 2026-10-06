@@ -154,14 +154,16 @@ function safeHost(u: string): string {
  * caller sees the real destination; if decoding fails we keep the raw href.
  */
 function unwrapBingUrl(href: string): string {
-  const m = /[?&]u=([^&]+)/.exec(href);
-  if (!m) return href;
+  // The href comes straight out of raw HTML, where `&` is escaped as `&amp;`.
+  const decoded = href.replace(/&amp;/g, '&');
+  const m = /[?&]u=([^&]+)/.exec(decoded);
+  if (!m) return decoded;
   try {
     const b64 = decodeURIComponent(m[1]).replace(/^[a-z]\d/, '');
     const url = Buffer.from(b64, 'base64').toString('utf-8');
-    return /^https?:\/\//i.test(url) ? url : href;
+    return /^https?:\/\//i.test(url) ? url : decoded;
   } catch {
-    return href;
+    return decoded;
   }
 }
 
