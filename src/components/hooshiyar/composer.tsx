@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAppStore } from '@/components/hooshiyar/store';
 import { useChatSession } from '@/components/hooshiyar/use-chat-session';
 import { addDocument } from '@/lib/rag';
+import { capabilityHeaders } from '@/lib/client/capability';
 import { formatBytes } from '@/lib/persian';
 import type { ChatRec } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -90,7 +91,7 @@ export function Composer({ chat }: { chat: ChatRec }) {
         try {
           const fd = new FormData();
           fd.append('file', file);
-          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const res = await fetch('/api/upload', { method: 'POST', body: fd, headers: capabilityHeaders() });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error ?? 'خطای سرور');
           await addDocument(file.name, json.text, json.mime ?? file.type, file.size);

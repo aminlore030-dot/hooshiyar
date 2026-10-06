@@ -10,6 +10,7 @@ import { ThemeProvider } from 'next-themes';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { getDb, getSetting, setSetting } from '@/lib/idb';
 import { getKeys, hasVault, isPlainVault } from '@/lib/vault';
+import { ensureCapability } from '@/lib/client/capability';
 import { useAppStore } from '@/components/hooshiyar/store';
 import { Sidebar } from '@/components/hooshiyar/sidebar';
 import { ChatView } from '@/components/hooshiyar/chat-view';
@@ -33,6 +34,11 @@ export function Workspace() {
   /* boot sequence */
   useEffect(() => {
     (async () => {
+      // Capability token for the dangerous tool routes (/api/tools/*, /api/files,
+      // /api/upload, /api/mcp-proxy). Fetched once; failures just mean those
+      // tools will be refused until the page reloads.
+      void ensureCapability();
+
       await loadSettings();
       const storedMcp = await getSetting<McpServerRec[]>('mcpServers');
       if (storedMcp?.length) setMcpServers(storedMcp);

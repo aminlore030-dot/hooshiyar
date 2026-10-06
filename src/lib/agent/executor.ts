@@ -8,6 +8,7 @@
 import { getDb, logAudit } from '@/lib/idb';
 import { searchDocs, formatHits } from '@/lib/rag';
 import { commandNeedsApproval } from '@/lib/agent/tools';
+import { capabilityHeaders } from '@/lib/client/capability';
 
 export interface ToolExecContext {
   approveAllShell: boolean;
@@ -27,7 +28,7 @@ export interface ToolExecResult {
 async function jsonFetch<T>(url: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...capabilityHeaders() },
     body: JSON.stringify(body),
     signal,
   });
@@ -60,7 +61,7 @@ async function mcpCall(
 ): Promise<Record<string, unknown>> {
   const res = await fetch('/api/mcp-proxy', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...capabilityHeaders() },
     body: JSON.stringify({
       url: server.url,
       payload: { jsonrpc: '2.0', id: mcpNextId++, method, params: params ?? {} },

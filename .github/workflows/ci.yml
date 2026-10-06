@@ -26,6 +26,14 @@ jobs:
         env:
           DATABASE_URL: file:db/custom.db
 
+      - name: Build
+        # Turbopack emits `[externals]_node:child_process_*.js`; the `:` is
+        # illegal on Windows so the chunk is dropped and child-process routes
+        # fail at runtime. Webpack does not have this naming problem.
+        run: bun run build
+        env:
+          DATABASE_URL: file:db/custom.db
+
       - name: Run ESLint
         run: bun run lint
 

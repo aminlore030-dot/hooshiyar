@@ -15,8 +15,10 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NODE_ENV=production
-# پرisma/SQLite روی stale data حساس نیست؛ اپ از IndexedDB استفاده می‌کند و Prisma اختیاری است
-RUN bun run build || (echo "build failed" && exit 1)
+# webpack (not Turbopack): Turbopack names externals chunks `node:child_process`,
+# which Windows cannot store; Docker builds on Linux are unaffected but we keep
+# one build path everywhere.
+RUN bun run build
 
 # ─── runtime ───
 FROM base AS runner
