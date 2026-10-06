@@ -70,3 +70,4 @@ server.log
 .zscripts/*.pid
 /tool-results/*/
 !tool-results/.gitkeep
+.env*

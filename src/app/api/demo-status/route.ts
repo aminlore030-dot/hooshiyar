@@ -28,10 +28,19 @@ export async function GET(req: NextRequest) {
   try {
     const mod = await import('z-ai-web-dev-sdk');
     const ZAI: any = (mod as any).default ?? mod;
-    const zai = await Promise.race([
-      ZAI.create(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
-    ]);
+
+    // The SDK looks for a `.z-ai-config` file in cwd/home/etc. That file does
+    // not exist on Vercel (and would be a secret in the repo if it did), so
+    // fall back to env vars and construct the client directly. On the original
+    // host the file exists and ZAI.create() works on its own.
+    const baseUrl = process.env.ZAI_BASE_URL;
+    const apiKey = process.env.ZAI_API_KEY;
+    const zai = baseUrl && apiKey
+      ? new ZAI({ baseUrl, apiKey })
+      : await Promise.race([
+          ZAI.create(),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000)),
+        ]);
     available = Boolean(zai?.chat?.completions?.create);
   } catch {
     available = false;

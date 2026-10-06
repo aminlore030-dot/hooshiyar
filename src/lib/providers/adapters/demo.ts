@@ -22,7 +22,11 @@ export async function* streamDemo(req: ProxyChatRequest): AsyncGenerator<StreamE
 
   let zai: any;
   try {
-    zai = await ZAI.create();
+    // Same env-var fallback as /api/demo-status: the SDK's own config file
+    // lookup fails off the original host.
+    const baseUrl = process.env.ZAI_BASE_URL;
+    const apiKey = process.env.ZAI_API_KEY;
+    zai = baseUrl && apiKey ? new ZAI({ baseUrl, apiKey }) : await ZAI.create();
   } catch (e: any) {
     yield { type: 'error', message: `راه‌اندازی موتور دمو ناموفق بود: ${e?.message ?? e}` };
     return;
