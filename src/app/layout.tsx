@@ -20,11 +20,14 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The capability cookie is issued by a Route Handler (see /api/bootstrap)
+  // rather than here, because Next 16 only allows cookies() to be *modified*
+  // inside a Server Action or Route Handler. The client fetches it on boot.
   return (
     <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className="antialiased bg-background text-foreground font-sans">

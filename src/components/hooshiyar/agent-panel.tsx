@@ -10,6 +10,7 @@ import {
   Wrench, FolderTree, Brain, FileText, ScrollText, Trash2, Plus, RefreshCw, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { capabilityHeaders } from '@/lib/client/capability';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -140,7 +141,7 @@ function FilesTab() {
     try {
       const res = await fetch('/api/files', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...capabilityHeaders() },
         body: JSON.stringify({ op: 'list', path: '' }),
       });
       const json = await res.json();
@@ -253,7 +254,7 @@ function DocsTab() {
         try {
           const fd = new FormData();
           fd.append('file', file);
-          const res = await fetch('/api/upload', { method: 'POST', body: fd });
+          const res = await fetch('/api/upload', { method: 'POST', body: fd, headers: capabilityHeaders() });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
           const { addDocument } = await import('@/lib/rag');

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { spawn } from 'node:child_process';
 import { rateLimit, clientIp } from '@/lib/server/ratelimit';
 import { WORKSPACE_ROOT, ensureWorkspace } from '@/lib/server/workspace';
+import { verifyCapability } from '@/lib/server/capability';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,9 @@ const bodySchema = z.object({
 const BLOCKED_IMPORTS = ['socket', 'subprocess', 'ctypes', 'multiprocessing', 'http.client'];
 
 export async function POST(req: NextRequest) {
+  const cap = await verifyCapability(req);
+  if (cap !== true) return Response.json({ error: cap }, { status: 403 });
+
   const rl = rateLimit(`py:${clientIp(req)}`, { limit: 20, windowMs: 60_000 });
   if (!rl.ok) return Response.json({ error: 'محدودیت نرخ اجرای کد' }, { status: 429 });
 

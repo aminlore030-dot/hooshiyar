@@ -3,6 +3,7 @@ import { z } from 'zod';
 import vm from 'node:vm';
 import { rateLimit, clientIp } from '@/lib/server/ratelimit';
 import { WORKSPACE_ROOT, ensureWorkspace } from '@/lib/server/workspace';
+import { verifyCapability } from '@/lib/server/capability';
 import path from 'node:path';
 
 export const runtime = 'nodejs';
@@ -20,6 +21,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const cap = await verifyCapability(req);
+  if (cap !== true) return Response.json({ error: cap }, { status: 403 });
+
   const rl = rateLimit(`js:${clientIp(req)}`, { limit: 20, windowMs: 60_000 });
   if (!rl.ok) return Response.json({ error: 'محدودیت نرخ اجرای کد' }, { status: 429 });
 
